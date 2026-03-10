@@ -24,8 +24,38 @@ def main():
                 if r.get("year_month"):
                     plan_rows.append(r)
 
+    # 3/8時点 利用状況
+    usage_registration = []
+    usage_feature = []
+    usage_path = ROOT / "usage_summary_20260308.csv"
+    if usage_path.exists():
+        with open(usage_path, encoding="utf-8-sig") as f:
+            for r in csv.DictReader(f):
+                if r.get("type") == "registration":
+                    usage_registration.append(r)
+                elif r.get("type") == "feature":
+                    usage_feature.append(r)
+
+    usage_customers = []
+    usage_report_path = ROOT / "00_source" / "daily_diff_report_20260308.csv"
+    if usage_report_path.exists():
+        with open(usage_report_path, encoding="utf-8-sig") as f:
+            for r in csv.DictReader(f):
+                if r.get("company_name"):
+                    plan = r.get("current_plan_title") or "未設定"
+                    if plan == "NULL":
+                        plan = "未設定"
+                    usage_customers.append({
+                        "company_name": r["company_name"],
+                        "plan": plan,
+                        "login_count": r.get("total_sign_in_count", "0"),
+                    })
+
     daily_json = json.dumps(daily_rows, ensure_ascii=False)
     plan_json = json.dumps(plan_rows, ensure_ascii=False)
+    usage_reg_json = json.dumps(usage_registration, ensure_ascii=False)
+    usage_feat_json = json.dumps(usage_feature, ensure_ascii=False)
+    usage_cust_json = json.dumps(usage_customers, ensure_ascii=False)
 
     html = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -84,10 +114,46 @@ def main():
     </div>
   </section>
 
+  <section class="section" style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #e5e7eb;">
+    <h2>3/8時点 利用状況（顧客別）</h2>
+    <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem;">データソース: Mont_Blanc 顧客利用状況データ (2026/3/8)</p>
+
+    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">登録状況</h3>
+    <div class="table-wrap" style="margin-bottom: 2rem;">
+      <table id="usage-reg-table">
+        <thead><tr><th>区分</th><th>件数</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">機能別 利用状況</h3>
+    <div class="table-wrap" style="margin-bottom: 2rem;">
+      <table id="usage-feat-table">
+        <thead><tr><th>機能</th><th>利用企業数</th><th>総件数</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">顧客別一覧</h3>
+    <p style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+      <span style="font-size: 0.875rem;">ヘッダーをクリックでソート</span>
+      <button type="button" class="btn-csv" id="btn-usage-csv">3/8利用状況 CSV ダウンロード</button>
+    </p>
+    <div class="table-wrap">
+      <table id="usage-cust-table">
+        <thead><tr><th data-col="0">企業名</th><th data-col="1">プラン</th><th data-col="2">ログイン数</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script>
     const dailyData = {daily_json};
     const planData = {plan_json};
+    const usageRegData = {usage_reg_json};
+    const usageFeatData = {usage_feat_json};
+    const usageCustData = {usage_cust_json};
 
     // 日次グラフ（事業者数・ログイン数）
     const labels = dailyData.map(r => r.date.replace('2026-', ''));
@@ -215,6 +281,29 @@ def main():
     document.getElementById('btn-plan-csv').addEventListener('click', () => {{
       const headers = ['year_month', 'elapsed_months', 'free_users', 'paid_users', 'bpsp_users', 'total'];
       downloadCsv(toCsv(planData, headers), 'monthly_plan.csv');
+    }});
+
+    // 3/8時点 利用状況
+    usageRegData.forEach(r => {{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${{r.label}}</td><td>${{r.company_count}}社</td>`;
+      document.querySelector('#usage-reg-table tbody').appendChild(tr);
+    }});
+    usageFeatData.forEach(r => {{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${{r.label}}</td><td>${{r.company_count}}社</td><td>${{r.total_count || '-'}}</td>`;
+      document.querySelector('#usage-feat-table tbody').appendChild(tr);
+    }});
+    usageCustData.sort((a, b) => parseInt(b.login_count || '0', 10) - parseInt(a.login_count || '0', 10));
+    usageCustData.forEach(r => {{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${{r.company_name}}</td><td>${{r.plan}}</td><td>${{r.login_count}}</td>`;
+      document.querySelector('#usage-cust-table tbody').appendChild(tr);
+    }});
+    makeSortable('usage-cust-table');
+    document.getElementById('btn-usage-csv').addEventListener('click', () => {{
+      const headers = ['company_name', 'plan', 'login_count'];
+      downloadCsv(toCsv(usageCustData, headers), 'usage_by_customer_20260308.csv');
     }});
   </script>
 </body>

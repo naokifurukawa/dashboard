@@ -55,10 +55,46 @@
     </div>
   </section>
 
+  <section class="section" style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #e5e7eb;">
+    <h2>3/8時点 利用状況（顧客別）</h2>
+    <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem;">データソース: Mont_Blanc 顧客利用状況データ (2026/3/8)</p>
+
+    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">登録状況</h3>
+    <div class="table-wrap" style="margin-bottom: 2rem;">
+      <table id="usage-reg-table">
+        <thead><tr><th>区分</th><th>件数</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">機能別 利用状況</h3>
+    <div class="table-wrap" style="margin-bottom: 2rem;">
+      <table id="usage-feat-table">
+        <thead><tr><th>機能</th><th>利用企業数</th><th>総件数</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">顧客別一覧</h3>
+    <p style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+      <span style="font-size: 0.875rem;">ヘッダーをクリックでソート</span>
+      <button type="button" class="btn-csv" id="btn-usage-csv">3/8利用状況 CSV ダウンロード</button>
+    </p>
+    <div class="table-wrap">
+      <table id="usage-cust-table">
+        <thead><tr><th data-col="0">企業名</th><th data-col="1">プラン</th><th data-col="2">ログイン数</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script>
     const dailyData = [{"date": "2026-03-02", "business_count": "46", "login_count_total": "383", "login_count_diff": "383", "note": ""}, {"date": "2026-03-03", "business_count": "46", "login_count_total": "383", "login_count_diff": "383", "note": ""}, {"date": "2026-03-04", "business_count": "60", "login_count_total": "425", "login_count_diff": "42", "note": ""}, {"date": "2026-03-05", "business_count": "69", "login_count_total": "459", "login_count_diff": "34", "note": ""}, {"date": "2026-03-06", "business_count": "80", "login_count_total": "487", "login_count_diff": "28", "note": ""}, {"date": "2026-03-07", "business_count": "81", "login_count_total": "489", "login_count_diff": "2", "note": ""}, {"date": "2026-03-08", "business_count": "81", "login_count_total": "489", "login_count_diff": "0", "note": ""}, {"date": "2026-03-09", "business_count": "92", "login_count_total": "521", "login_count_diff": "32", "note": ""}];
     const planData = [{"year_month": "2026-03", "elapsed_months": "1", "free_users": "165", "paid_users": "41", "bpsp_users": "14", "total": "221"}, {"year_month": "2026-04", "elapsed_months": "2", "free_users": "331", "paid_users": "83", "bpsp_users": "28", "total": "442"}, {"year_month": "2026-05", "elapsed_months": "3", "free_users": "496", "paid_users": "124", "bpsp_users": "43", "total": "663"}, {"year_month": "2026-06", "elapsed_months": "4", "free_users": "661", "paid_users": "165", "bpsp_users": "57", "total": "883"}, {"year_month": "2026-07", "elapsed_months": "5", "free_users": "827", "paid_users": "207", "bpsp_users": "71", "total": "1104"}, {"year_month": "2026-08", "elapsed_months": "6", "free_users": "992", "paid_users": "248", "bpsp_users": "85", "total": "1325"}, {"year_month": "2026-09", "elapsed_months": "7", "free_users": "1157", "paid_users": "289", "bpsp_users": "99", "total": "1546"}, {"year_month": "2026-10", "elapsed_months": "8", "free_users": "1323", "paid_users": "331", "bpsp_users": "113", "total": "1767"}, {"year_month": "2026-11", "elapsed_months": "9", "free_users": "1488", "paid_users": "372", "bpsp_users": "128", "total": "1988"}, {"year_month": "2026-12", "elapsed_months": "10", "free_users": "1653", "paid_users": "413", "bpsp_users": "142", "total": "2208"}, {"year_month": "2027-01", "elapsed_months": "11", "free_users": "1819", "paid_users": "456", "bpsp_users": "156", "total": "2429"}, {"year_month": "2027-02", "elapsed_months": "12", "free_users": "1984", "paid_users": "496", "bpsp_users": "170", "total": "2650"}, {"year_month": "2027-03", "elapsed_months": "13", "free_users": "2149", "paid_users": "537", "bpsp_users": "184", "total": "2871"}];
+    const usageRegData = [{"type": "registration", "label": "登録済み (registered)", "company_count": "67", "total_count": ""}, {"type": "registration", "label": "登録中 (registering)", "company_count": "14", "total_count": ""}, {"type": "registration", "label": "合計", "company_count": "81", "total_count": ""}];
+    const usageFeatData = [{"type": "feature", "label": "請求書カード払い", "company_count": "0", "total_count": "0"}, {"type": "feature", "label": "銀行振込", "company_count": "7", "total_count": "136"}, {"type": "feature", "label": "ファイル保存", "company_count": "29", "total_count": "94"}, {"type": "feature", "label": "ファイル保存（受領請求書）", "company_count": "22", "total_count": "54"}];
+    const usageCustData = [{"company_name": "DXシステム検証用", "plan": "有料プラン", "login_count": "128"}, {"company_name": "エメラダ株式会社（テスト）", "plan": "有料プラン", "login_count": "131"}, {"company_name": "DXシステム検証用", "plan": "有料プラン", "login_count": "24"}, {"company_name": "熊本銀行営業推進部ダイレクトバンキングセンターテスト用", "plan": "無料プラン", "login_count": "17"}, {"company_name": "株）十八親和銀行　デジタル化推進部", "plan": "無料プラン", "login_count": "35"}, {"company_name": "福岡銀行ＩＢＥＢチームＥＢテスト用口座", "plan": "無料プラン", "login_count": "6"}, {"company_name": "福岡銀行ＩＢＥＢチームＥＢテスト用口座", "plan": "無料プラン", "login_count": "6"}, {"company_name": "iBankマーケティング株式会社", "plan": "未設定", "login_count": "0"}, {"company_name": "社会福祉法人ともしび福祉会", "plan": "無料プラン", "login_count": "3"}, {"company_name": "医療法人洗心会児嶋病院", "plan": "無料プラン", "login_count": "1"}, {"company_name": "有限会社高濱塗装工業", "plan": "無料プラン", "login_count": "2"}, {"company_name": "MSD合同会社", "plan": "無料プラン", "login_count": "1"}, {"company_name": "サン電子工業株式会社", "plan": "無料プラン", "login_count": "3"}, {"company_name": "SPD", "plan": "未設定", "login_count": "0"}, {"company_name": "株式会社タケダ", "plan": "無料プラン", "login_count": "1"}, {"company_name": "CIGリアルター株式会社", "plan": "無料プラン", "login_count": "1"}, {"company_name": "柳川みやま土木組合", "plan": "未設定", "login_count": "0"}, {"company_name": "株式会社祐水コンサルタント", "plan": "無料プラン", "login_count": "1"}, {"company_name": "有限会社富士オートセンター", "plan": "無料プラン", "login_count": "4"}, {"company_name": "弁護士法人豊前総合法律事務所", "plan": "無料プラン", "login_count": "3"}, {"company_name": "西南自動車工業株式会社", "plan": "無料プラン", "login_count": "2"}, {"company_name": "株式会社キャップドゥーエデュケーションズ", "plan": "無料プラン", "login_count": "6"}, {"company_name": "社会福祉法人如月会", "plan": "無料プラン", "login_count": "5"}, {"company_name": "有限会社桜木電業", "plan": "無料プラン", "login_count": "1"}, {"company_name": "株式会社ヒラオカコーポレーション", "plan": "無料プラン", "login_count": "10"}, {"company_name": "医療法人社団大同会ニュー琴海病院", "plan": "未設定", "login_count": "0"}, {"company_name": "有限会社メディケアファーマシー田口", "plan": "無料プラン", "login_count": "5"}, {"company_name": "株式会社つくす", "plan": "無料プラン", "login_count": "6"}, {"company_name": "株式会社ごうや薬局", "plan": "無料プラン", "login_count": "1"}, {"company_name": "オギハラ食品株式会社", "plan": "無料プラン", "login_count": "1"}, {"company_name": "おおばでんき", "plan": "無料プラン", "login_count": "11"}, {"company_name": "株式会社Reclaim.tech", "plan": "無料プラン", "login_count": "1"}, {"company_name": "株式会社アットマーク", "plan": "未設定", "login_count": "0"}, {"company_name": "株式会社和吉", "plan": "無料プラン", "login_count": "1"}, {"company_name": "イデアパートナーズ株式会社", "plan": "無料プラン", "login_count": "2"}, {"company_name": "株式会社アウルクリエイティブ", "plan": "無料プラン", "login_count": "1"}, {"company_name": "施設紹介サービスOcT", "plan": "無料プラン", "login_count": "1"}, {"company_name": "福岡矢口株式会社", "plan": "無料プラン", "login_count": "1"}, {"company_name": "福岡矢口株式会社", "plan": "未設定", "login_count": "0"}, {"company_name": "株式会社ふるくま", "plan": "未設定", "login_count": "0"}, {"company_name": "ハウス技建", "plan": "無料プラン", "login_count": "2"}, {"company_name": "有限会社池部製材所", "plan": "無料プラン", "login_count": "1"}, {"company_name": "有限会社グローバルコーポレーション", "plan": "無料プラン", "login_count": "1"}, {"company_name": "福岡矢口株式会社", "plan": "無料プラン", "login_count": "0"}, {"company_name": "有限会社　廣瀬製作所", "plan": "無料プラン", "login_count": "3"}, {"company_name": "株式会社タケダ", "plan": "無料プラン", "login_count": "0"}, {"company_name": "大成管理開発株式会社", "plan": "未設定", "login_count": "0"}, {"company_name": "有限会社マルユー", "plan": "無料プラン", "login_count": "1"}, {"company_name": "株式会社　井筒造船所", "plan": "未設定", "login_count": "0"}, {"company_name": "有限会社しばやま", "plan": "無料プラン", "login_count": "1"}, {"company_name": "Avis株式会社", "plan": "無料プラン", "login_count": "1"}, {"company_name": "ノース・テック有限会社", "plan": "無料プラン", "login_count": "1"}, {"company_name": "有限会社あっとホーム", "plan": "無料プラン", "login_count": "1"}, {"company_name": "有限会社　氷川開発", "plan": "無料プラン", "login_count": "1"}, {"company_name": "有限会社　永田構造設計", "plan": "無料プラン", "login_count": "1"}, {"company_name": "株式会社　城北コーポレーション", "plan": "無料プラン", "login_count": "1"}, {"company_name": "株式会社シーバイハート", "plan": "無料プラン", "login_count": "1"}, {"company_name": "カレーハウスCoCo壱番屋　熊本玉名店", "plan": "無料プラン", "login_count": "4"}, {"company_name": "植野建設株式会社", "plan": "無料プラン", "login_count": "3"}, {"company_name": "有限会社上村ビル", "plan": "無料プラン", "login_count": "1"}, {"company_name": "有限会社古閑畜産", "plan": "無料プラン", "login_count": "4"}, {"company_name": "ＭＥＩＳＥＩホールディングス株式会社", "plan": "無料プラン", "login_count": "2"}, {"company_name": "株式会社アグレイトワークス", "plan": "未設定", "login_count": "0"}, {"company_name": "株式会社ＫＡＬＥＩＤＯ", "plan": "無料プラン", "login_count": "3"}, {"company_name": "有限会社マルカド", "plan": "無料プラン", "login_count": "1"}, {"company_name": "山﨑建築室", "plan": "未設定", "login_count": "0"}, {"company_name": "株式会社　松久工業", "plan": "無料プラン", "login_count": "7"}, {"company_name": "(株)戸馳運輸", "plan": "無料プラン", "login_count": "5"}, {"company_name": "おてつだいサービス　ま心", "plan": "無料プラン", "login_count": "1"}, {"company_name": "T.Hメタル", "plan": "無料プラン", "login_count": "1"}, {"company_name": "岩崎工業株式会社", "plan": "無料プラン", "login_count": "1"}, {"company_name": "株式会社昇栄建設", "plan": "無料プラン", "login_count": "3"}, {"company_name": "有限会社　高山商店", "plan": "未設定", "login_count": "0"}, {"company_name": "有限会社ひろや酒店", "plan": "無料プラン", "login_count": "4"}, {"company_name": "天草綜合ガード有限会社", "plan": "無料プラン", "login_count": "1"}, {"company_name": "有限会社　中尾石油", "plan": "無料プラン", "login_count": "1"}, {"company_name": "医療法人社団大塚会", "plan": "無料プラン", "login_count": "3"}, {"company_name": "有限会社ワコー電設", "plan": "無料プラン", "login_count": "1"}, {"company_name": "有限会社一美商会", "plan": "無料プラン", "login_count": "2"}, {"company_name": "米村　靖貴", "plan": "無料プラン", "login_count": "1"}, {"company_name": "医療法人Olive", "plan": "無料プラン", "login_count": "2"}];
 
     // 日次グラフ（事業者数・ログイン数）
     const labels = dailyData.map(r => r.date.replace('2026-', ''));
@@ -186,6 +222,29 @@
     document.getElementById('btn-plan-csv').addEventListener('click', () => {
       const headers = ['year_month', 'elapsed_months', 'free_users', 'paid_users', 'bpsp_users', 'total'];
       downloadCsv(toCsv(planData, headers), 'monthly_plan.csv');
+    });
+
+    // 3/8時点 利用状況
+    usageRegData.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.label}</td><td>${r.company_count}社</td>`;
+      document.querySelector('#usage-reg-table tbody').appendChild(tr);
+    });
+    usageFeatData.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.label}</td><td>${r.company_count}社</td><td>${r.total_count || '-'}</td>`;
+      document.querySelector('#usage-feat-table tbody').appendChild(tr);
+    });
+    usageCustData.sort((a, b) => parseInt(b.login_count || '0', 10) - parseInt(a.login_count || '0', 10));
+    usageCustData.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.company_name}</td><td>${r.plan}</td><td>${r.login_count}</td>`;
+      document.querySelector('#usage-cust-table tbody').appendChild(tr);
+    });
+    makeSortable('usage-cust-table');
+    document.getElementById('btn-usage-csv').addEventListener('click', () => {
+      const headers = ['company_name', 'plan', 'login_count'];
+      downloadCsv(toCsv(usageCustData, headers), 'usage_by_customer_20260308.csv');
     });
   </script>
 </body>

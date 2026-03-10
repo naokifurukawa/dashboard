@@ -1,0 +1,8 @@
+type,label,company_count,total_count
+registration,登録済み (registered),67,
+registration,登録中 (registering),14,
+registration,合計,81,
+feature,請求書カード払い,0,0
+feature,銀行振込,7,136
+feature,ファイル保存,29,94
+feature,ファイル保存（受領請求書）,22,54
