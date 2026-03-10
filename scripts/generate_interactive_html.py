@@ -55,7 +55,7 @@ def main():
   </header>
 
   <section class="section">
-    <h2>日次トラッキング（事業者数）</h2>
+    <h2>日次トラッキング（事業者数・ログイン数）</h2>
     <div class="chart-wrap" style="height: 280px; margin-bottom: 1.5rem;">
       <canvas id="daily-chart"></canvas>
     </div>
@@ -72,7 +72,7 @@ def main():
     <p>ヘッダーをクリックでソート</p>
     <div class="table-wrap">
       <table id="daily-table">
-        <thead><tr><th data-col="0">日付</th><th data-col="1">事業者数</th><th data-col="2">ログイン合計</th><th data-col="3">日次差分</th><th data-col="4">備考</th></tr></thead>
+        <thead><tr><th data-col="0">日付</th><th data-col="1">事業者数</th><th data-col="2">ログイン合計</th><th data-col="3">ログイン数（日次）</th><th data-col="4">備考</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -83,27 +83,42 @@ def main():
     const dailyData = {daily_json};
     const planData = {plan_json};
 
-    // 日次グラフ（事業者数のみ）
+    // 日次グラフ（事業者数・ログイン数）
     const labels = dailyData.map(r => r.date.replace('2026-', ''));
     new Chart(document.getElementById('daily-chart'), {{
       type: 'line',
       data: {{
         labels: labels,
-        datasets: [{{
-          label: '事業者数',
-          data: dailyData.map(r => parseInt(r.business_count || '0', 10)),
-          borderColor: 'rgb(59, 130, 246)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          tension: 0.2,
-          fill: true
-        }}]
+        datasets: [
+          {{
+            label: '事業者数',
+            data: dailyData.map(r => parseInt(r.business_count || '0', 10)),
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.2,
+            fill: true,
+            yAxisID: 'y'
+          }},
+          {{
+            label: 'ログイン数',
+            data: dailyData.map(r => parseInt(r.login_count_diff || '0', 10)),
+            borderColor: 'rgb(34, 197, 94)',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            tension: 0.2,
+            fill: true,
+            yAxisID: 'y1'
+          }}
+        ]
       }},
       options: {{
         responsive: true,
         maintainAspectRatio: false,
         interaction: {{ intersect: false, mode: 'index' }},
         plugins: {{ legend: {{ position: 'top' }} }},
-        scales: {{ y: {{ type: 'linear', min: 0, title: {{ display: true, text: '事業者数' }} }} }}
+        scales: {{
+          y: {{ type: 'linear', min: 0, position: 'left', title: {{ display: true, text: '事業者数' }} }},
+          y1: {{ type: 'linear', min: 0, position: 'right', title: {{ display: true, text: 'ログイン数（日次）' }} }}
+        }}
       }}
     }});
 

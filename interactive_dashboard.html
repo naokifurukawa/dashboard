@@ -26,7 +26,7 @@
   </header>
 
   <section class="section">
-    <h2>日次トラッキング（事業者数）</h2>
+    <h2>日次トラッキング（事業者数・ログイン数）</h2>
     <div class="chart-wrap" style="height: 280px; margin-bottom: 1.5rem;">
       <canvas id="daily-chart"></canvas>
     </div>
@@ -43,7 +43,7 @@
     <p>ヘッダーをクリックでソート</p>
     <div class="table-wrap">
       <table id="daily-table">
-        <thead><tr><th data-col="0">日付</th><th data-col="1">事業者数</th><th data-col="2">ログイン合計</th><th data-col="3">日次差分</th><th data-col="4">備考</th></tr></thead>
+        <thead><tr><th data-col="0">日付</th><th data-col="1">事業者数</th><th data-col="2">ログイン合計</th><th data-col="3">ログイン数（日次）</th><th data-col="4">備考</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -54,27 +54,42 @@
     const dailyData = [{"date": "2026-03-02", "business_count": "46", "login_count_total": "383", "login_count_diff": "383", "note": ""}, {"date": "2026-03-03", "business_count": "46", "login_count_total": "383", "login_count_diff": "383", "note": ""}, {"date": "2026-03-04", "business_count": "60", "login_count_total": "425", "login_count_diff": "42", "note": ""}, {"date": "2026-03-05", "business_count": "69", "login_count_total": "459", "login_count_diff": "34", "note": ""}, {"date": "2026-03-06", "business_count": "80", "login_count_total": "487", "login_count_diff": "28", "note": ""}, {"date": "2026-03-07", "business_count": "81", "login_count_total": "489", "login_count_diff": "2", "note": ""}, {"date": "2026-03-08", "business_count": "81", "login_count_total": "489", "login_count_diff": "0", "note": ""}, {"date": "2026-03-09", "business_count": "92", "login_count_total": "521", "login_count_diff": "32", "note": ""}];
     const planData = [{"year_month": "2026-03", "elapsed_months": "1", "free_users": "165", "paid_users": "41", "bpsp_users": "14", "total": "221"}, {"year_month": "2026-04", "elapsed_months": "2", "free_users": "331", "paid_users": "83", "bpsp_users": "28", "total": "442"}, {"year_month": "2026-05", "elapsed_months": "3", "free_users": "496", "paid_users": "124", "bpsp_users": "43", "total": "663"}, {"year_month": "2026-06", "elapsed_months": "4", "free_users": "661", "paid_users": "165", "bpsp_users": "57", "total": "883"}, {"year_month": "2026-07", "elapsed_months": "5", "free_users": "827", "paid_users": "207", "bpsp_users": "71", "total": "1104"}, {"year_month": "2026-08", "elapsed_months": "6", "free_users": "992", "paid_users": "248", "bpsp_users": "85", "total": "1325"}, {"year_month": "2026-09", "elapsed_months": "7", "free_users": "1157", "paid_users": "289", "bpsp_users": "99", "total": "1546"}, {"year_month": "2026-10", "elapsed_months": "8", "free_users": "1323", "paid_users": "331", "bpsp_users": "113", "total": "1767"}, {"year_month": "2026-11", "elapsed_months": "9", "free_users": "1488", "paid_users": "372", "bpsp_users": "128", "total": "1988"}, {"year_month": "2026-12", "elapsed_months": "10", "free_users": "1653", "paid_users": "413", "bpsp_users": "142", "total": "2208"}, {"year_month": "2027-01", "elapsed_months": "11", "free_users": "1819", "paid_users": "456", "bpsp_users": "156", "total": "2429"}, {"year_month": "2027-02", "elapsed_months": "12", "free_users": "1984", "paid_users": "496", "bpsp_users": "170", "total": "2650"}, {"year_month": "2027-03", "elapsed_months": "13", "free_users": "2149", "paid_users": "537", "bpsp_users": "184", "total": "2871"}];
 
-    // 日次グラフ（事業者数のみ）
+    // 日次グラフ（事業者数・ログイン数）
     const labels = dailyData.map(r => r.date.replace('2026-', ''));
     new Chart(document.getElementById('daily-chart'), {
       type: 'line',
       data: {
         labels: labels,
-        datasets: [{
-          label: '事業者数',
-          data: dailyData.map(r => parseInt(r.business_count || '0', 10)),
-          borderColor: 'rgb(59, 130, 246)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
-          tension: 0.2,
-          fill: true
-        }]
+        datasets: [
+          {
+            label: '事業者数',
+            data: dailyData.map(r => parseInt(r.business_count || '0', 10)),
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.2,
+            fill: true,
+            yAxisID: 'y'
+          },
+          {
+            label: 'ログイン数',
+            data: dailyData.map(r => parseInt(r.login_count_diff || '0', 10)),
+            borderColor: 'rgb(34, 197, 94)',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            tension: 0.2,
+            fill: true,
+            yAxisID: 'y1'
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { intersect: false, mode: 'index' },
         plugins: { legend: { position: 'top' } },
-        scales: { y: { type: 'linear', min: 0, title: { display: true, text: '事業者数' } } }
+        scales: {
+          y: { type: 'linear', min: 0, position: 'left', title: { display: true, text: '事業者数' } },
+          y1: { type: 'linear', min: 0, position: 'right', title: { display: true, text: 'ログイン数（日次）' } }
+        }
       }
     });
 
