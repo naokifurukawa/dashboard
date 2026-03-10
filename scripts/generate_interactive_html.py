@@ -46,6 +46,8 @@ def main():
     th:hover {{ background: #eee; }}
     th.sorted-asc::after {{ content: " ▲"; font-size: 0.7em; opacity: 0.7; }}
     th.sorted-desc::after {{ content: " ▼"; font-size: 0.7em; opacity: 0.7; }}
+    .btn-csv {{ padding: 0.4rem 0.8rem; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.875rem; }}
+    .btn-csv:hover {{ background: #1d4ed8; }}
   </style>
 </head>
 <body>
@@ -69,7 +71,11 @@ def main():
   </section>
 
   <section class="section">
-    <p>ヘッダーをクリックでソート</p>
+    <p style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+      <span>ヘッダーをクリックでソート</span>
+      <button type="button" class="btn-csv" id="btn-daily-csv">日次トラッキング CSV ダウンロード</button>
+      <button type="button" class="btn-csv" id="btn-plan-csv">月次計画 CSV ダウンロード</button>
+    </p>
     <div class="table-wrap">
       <table id="daily-table">
         <thead><tr><th data-col="0">日付</th><th data-col="1">事業者数</th><th data-col="2">ログイン合計</th><th data-col="3">ログイン数（日次）</th><th data-col="4">備考</th></tr></thead>
@@ -180,6 +186,36 @@ def main():
       dailyTbody.appendChild(tr);
     }});
     makeSortable('daily-table');
+
+    // CSV ダウンロード
+    function escapeCsvCell(v) {{
+      const s = String(v ?? '');
+      if (/[",\\n\\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }}
+    function toCsv(rows, headers) {{
+      const lines = [headers.map(escapeCsvCell).join(',')];
+      rows.forEach(r => {{
+        lines.push(headers.map(h => escapeCsvCell(r[h])).join(','));
+      }});
+      return lines.join('\\r\\n');
+    }}
+    function downloadCsv(csv, filename) {{
+      const blob = new Blob(['\\ufeff' + csv], {{ type: 'text/csv;charset=utf-8' }});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }}
+    document.getElementById('btn-daily-csv').addEventListener('click', () => {{
+      const headers = ['date', 'business_count', 'login_count_total', 'login_count_diff', 'note'];
+      downloadCsv(toCsv(dailyData, headers), 'daily_tracking.csv');
+    }});
+    document.getElementById('btn-plan-csv').addEventListener('click', () => {{
+      const headers = ['year_month', 'elapsed_months', 'free_users', 'paid_users', 'bpsp_users', 'total'];
+      downloadCsv(toCsv(planData, headers), 'monthly_plan.csv');
+    }});
   </script>
 </body>
 </html>
