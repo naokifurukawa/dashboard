@@ -24,7 +24,7 @@ def main():
                 if r.get("year_month"):
                     plan_rows.append(r)
 
-    # 3/8時点 利用状況
+    # 利用状況（登録・機能別は 3/8 固定）
     usage_registration = []
     usage_feature = []
     usage_path = ROOT / "usage_summary_20260308.csv"
@@ -36,26 +36,34 @@ def main():
                 elif r.get("type") == "feature":
                     usage_feature.append(r)
 
-    usage_customers = []
-    usage_report_path = ROOT / "00_source" / "daily_diff_report_20260308.csv"
-    if usage_report_path.exists():
-        with open(usage_report_path, encoding="utf-8-sig") as f:
-            for r in csv.DictReader(f):
-                if r.get("company_name"):
-                    plan = r.get("current_plan_title") or "未設定"
-                    if plan == "NULL":
-                        plan = "未設定"
-                    usage_customers.append({
-                        "company_name": r["company_name"],
-                        "plan": plan,
-                        "login_count": r.get("total_sign_in_count", "0"),
-                    })
+    # 週次比較用: 全 daily_diff_report を日付別に読み込み
+    usage_by_date = {}
+    source_dir = ROOT / "00_source"
+    if source_dir.exists():
+        for p in sorted(source_dir.glob("daily_diff_report_*.csv")):
+            date_str = p.stem.replace("daily_diff_report_", "")
+            if len(date_str) == 8 and date_str.isdigit():
+                label = f"{date_str[4:6]}/{date_str[6:8]}"
+                rows = []
+                with open(p, encoding="utf-8-sig") as f:
+                    for r in csv.DictReader(f):
+                        if r.get("company_name"):
+                            plan = r.get("current_plan_title") or "未設定"
+                            if plan == "NULL":
+                                plan = "未設定"
+                            rows.append({
+                                "company_id": r.get("company_id", ""),
+                                "company_name": r["company_name"],
+                                "plan": plan,
+                                "login_count": r.get("total_sign_in_count", "0"),
+                            })
+                usage_by_date[date_str] = {"label": label, "rows": rows}
 
     daily_json = json.dumps(daily_rows, ensure_ascii=False)
     plan_json = json.dumps(plan_rows, ensure_ascii=False)
     usage_reg_json = json.dumps(usage_registration, ensure_ascii=False)
     usage_feat_json = json.dumps(usage_feature, ensure_ascii=False)
-    usage_cust_json = json.dumps(usage_customers, ensure_ascii=False)
+    usage_by_date_json = json.dumps(usage_by_date, ensure_ascii=False)
 
     html = f"""<!DOCTYPE html>
 <html lang="ja">
@@ -115,10 +123,10 @@ def main():
   </section>
 
   <section class="section" style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #e5e7eb;">
-    <h2>3/8時点 利用状況（顧客別）</h2>
-    <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem;">データソース: Mont_Blanc 顧客利用状況データ (2026/3/8)</p>
+    <h2>利用状況（顧客別）週次比較</h2>
+    <p style="color: #6b7280; font-size: 0.875rem; margin-bottom: 1.5rem;">時点を選んで週次で比較できます。登録状況・機能別は 3/8 時点（Mont_Blanc データ）です。</p>
 
-    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">登録状況</h3>
+    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">登録状況（3/8時点）</h3>
     <div class="table-wrap" style="margin-bottom: 2rem;">
       <table id="usage-reg-table">
         <thead><tr><th>区分</th><th>件数</th></tr></thead>
@@ -126,7 +134,7 @@ def main():
       </table>
     </div>
 
-    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">機能別 利用状況</h3>
+    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">機能別 利用状況（3/8時点）</h3>
     <div class="table-wrap" style="margin-bottom: 2rem;">
       <table id="usage-feat-table">
         <thead><tr><th>機能</th><th>利用企業数</th><th>総件数</th></tr></thead>
@@ -134,14 +142,22 @@ def main():
       </table>
     </div>
 
-    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">顧客別一覧</h3>
-    <p style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
-      <span style="font-size: 0.875rem;">ヘッダーをクリックでソート</span>
-      <button type="button" class="btn-csv" id="btn-usage-csv">3/8利用状況 CSV ダウンロード</button>
-    </p>
+    <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem; color: #374151;">顧客別 週次比較</h3>
+    <div class="usage-compare-controls" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+      <label style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 0.875rem;">時点A</span>
+        <select id="usage-date-a" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #d1d5db;"></select>
+      </label>
+      <label style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="font-size: 0.875rem;">時点B</span>
+        <select id="usage-date-b" style="padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #d1d5db;"></select>
+      </label>
+      <button type="button" class="btn-csv" id="btn-usage-csv">比較結果 CSV ダウンロード</button>
+    </div>
+    <p style="font-size: 0.875rem; margin-bottom: 0.5rem;">ヘッダーをクリックでソート</p>
     <div class="table-wrap">
       <table id="usage-cust-table">
-        <thead><tr><th data-col="0">企業名</th><th data-col="1">プラン</th><th data-col="2">ログイン数</th></tr></thead>
+        <thead><tr><th data-col="0">企業名</th><th data-col="1" id="th-plan-a">時点A プラン</th><th data-col="2" id="th-login-a">時点A ログイン</th><th data-col="3" id="th-plan-b">時点B プラン</th><th data-col="4" id="th-login-b">時点B ログイン</th><th data-col="5">ログイン増減</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -153,7 +169,7 @@ def main():
     const planData = {plan_json};
     const usageRegData = {usage_reg_json};
     const usageFeatData = {usage_feat_json};
-    const usageCustData = {usage_cust_json};
+    const usageByDate = {usage_by_date_json};
 
     // 日次グラフ（事業者数・ログイン数）
     const labels = dailyData.map(r => r.date.replace('2026-', ''));
@@ -283,7 +299,7 @@ def main():
       downloadCsv(toCsv(planData, headers), 'monthly_plan.csv');
     }});
 
-    // 3/8時点 利用状況
+    // 登録状況・機能別（3/8固定）
     usageRegData.forEach(r => {{
       const tr = document.createElement('tr');
       tr.innerHTML = `<td>${{r.label}}</td><td>${{r.company_count}}社</td>`;
@@ -294,16 +310,78 @@ def main():
       tr.innerHTML = `<td>${{r.label}}</td><td>${{r.company_count}}社</td><td>${{r.total_count || '-'}}</td>`;
       document.querySelector('#usage-feat-table tbody').appendChild(tr);
     }});
-    usageCustData.sort((a, b) => parseInt(b.login_count || '0', 10) - parseInt(a.login_count || '0', 10));
-    usageCustData.forEach(r => {{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${{r.company_name}}</td><td>${{r.plan}}</td><td>${{r.login_count}}</td>`;
-      document.querySelector('#usage-cust-table tbody').appendChild(tr);
+
+    // 週次比較
+    const dateKeys = Object.keys(usageByDate).sort();
+    const selA = document.getElementById('usage-date-a');
+    const selB = document.getElementById('usage-date-b');
+    dateKeys.forEach(k => {{
+      const opt = (sel) => {{
+        const o = document.createElement('option');
+        o.value = k;
+        o.textContent = usageByDate[k].label;
+        sel.appendChild(o);
+      }};
+      opt(selA);
+      opt(selB);
     }});
+    if (dateKeys.length >= 2) {{
+      selA.value = dateKeys[0];
+      selB.value = dateKeys[dateKeys.length - 1];
+    }} else if (dateKeys.length === 1) {{
+      selA.value = selB.value = dateKeys[0];
+    }}
+
+    function renderUsageCompare() {{
+      const keyA = selA.value;
+      const keyB = selB.value;
+      const labelA = keyA ? usageByDate[keyA]?.label : '時点A';
+      const labelB = keyB ? usageByDate[keyB]?.label : '時点B';
+      document.getElementById('th-plan-a').textContent = labelA + ' プラン';
+      document.getElementById('th-login-a').textContent = labelA + ' ログイン';
+      document.getElementById('th-plan-b').textContent = labelB + ' プラン';
+      document.getElementById('th-login-b').textContent = labelB + ' ログイン';
+      const dataA = keyA ? (usageByDate[keyA]?.rows || []) : [];
+      const dataB = keyB ? (usageByDate[keyB]?.rows || []) : [];
+      const byIdA = {{}};
+      dataA.forEach(r => {{ byIdA[r.company_id || r.company_name] = r; }});
+      const byIdB = {{}};
+      dataB.forEach(r => {{ byIdB[r.company_id || r.company_name] = r; }});
+      const allIds = new Set([...Object.keys(byIdA), ...Object.keys(byIdB)]);
+      const rows = [];
+      allIds.forEach(id => {{
+        const a = byIdA[id];
+        const b = byIdB[id];
+        const name = (a || b)?.company_name || id;
+        const planA = a?.plan ?? '-';
+        const planB = b?.plan ?? '-';
+        const loginA = parseInt(a?.login_count || '0', 10);
+        const loginB = parseInt(b?.login_count || '0', 10);
+        const diff = loginB - loginA;
+        rows.push({{ company_name: name, plan_a: planA, login_a: loginA, plan_b: planB, login_b: loginB, diff }});
+      }});
+      rows.sort((x, y) => y.diff - x.diff);
+      const tbody = document.querySelector('#usage-cust-table tbody');
+      tbody.innerHTML = '';
+      rows.forEach(r => {{
+        const tr = document.createElement('tr');
+        const diffStr = r.diff > 0 ? `+${{r.diff}}` : r.diff < 0 ? `${{r.diff}}` : '0';
+        const diffClass = r.diff > 0 ? 'color: #059669;' : r.diff < 0 ? 'color: #dc2626;' : '';
+        tr.innerHTML = `<td>${{r.company_name}}</td><td>${{r.plan_a}}</td><td>${{r.login_a}}</td><td>${{r.plan_b}}</td><td>${{r.login_b}}</td><td style="${{diffClass}}">${{diffStr}}</td>`;
+        tbody.appendChild(tr);
+      }});
+      return rows;
+    }}
+
+    let lastCompareRows = [];
+    function updateCompare() {{ lastCompareRows = renderUsageCompare(); }}
+    selA.addEventListener('change', updateCompare);
+    selB.addEventListener('change', updateCompare);
+    updateCompare();
     makeSortable('usage-cust-table');
     document.getElementById('btn-usage-csv').addEventListener('click', () => {{
-      const headers = ['company_name', 'plan', 'login_count'];
-      downloadCsv(toCsv(usageCustData, headers), 'usage_by_customer_20260308.csv');
+      const headers = ['company_name', 'plan_a', 'login_a', 'plan_b', 'login_b', 'diff'];
+      downloadCsv(toCsv(lastCompareRows, headers), 'usage_compare.csv');
     }});
   </script>
 </body>
