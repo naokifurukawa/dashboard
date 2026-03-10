@@ -1,0 +1,7 @@
+{
+  "buildCommand": "python3 scripts/generate_interactive_html.py",
+  "outputDirectory": ".",
+  "rewrites": [
+    { "source": "/", "destination": "/interactive_dashboard.html" }
+  ]
+}

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FFG Bizship 請求・支払 登録ユーザー数</title>
+  <style>
+    :root { font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif; }
+    body { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.2rem; margin: 2rem 0 1rem; color: #333; }
+    .section { margin-bottom: 2rem; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #f5f5f5; font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
+    th:hover { background: #eee; }
+    th.sorted-asc::after { content: " ▲"; font-size: 0.7em; opacity: 0.7; }
+    th.sorted-desc::after { content: " ▼"; font-size: 0.7em; opacity: 0.7; }
+  </style>
+</head>
+<body>
+  <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h1 style="margin: 0;">FFG Bizship 請求・支払 登録ユーザー数</h1>
+    <img src="bizship_logo.png" alt="BIZSHIP 請求書管理・支払" style="height: 32px; width: auto;">
+  </header>
+
+  <section class="section">
+    <h2>日次トラッキング（事業者数）</h2>
+    <div class="chart-wrap" style="height: 280px; margin-bottom: 1.5rem;">
+      <canvas id="daily-chart"></canvas>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>計画 vs 実績</h2>
+    <div class="chart-wrap" style="height: 280px; margin-bottom: 1.5rem;">
+      <canvas id="plan-vs-actual-chart"></canvas>
+    </div>
+  </section>
+
+  <section class="section">
+    <p>ヘッダーをクリックでソート</p>
+    <div class="table-wrap">
+      <table id="daily-table">
+        <thead><tr><th data-col="0">日付</th><th data-col="1">事業者数</th><th data-col="2">ログイン合計</th><th data-col="3">日次差分</th><th data-col="4">備考</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script>
+    const dailyData = [{"date": "2026-03-02", "business_count": "46", "login_count_total": "383", "login_count_diff": "383", "note": ""}, {"date": "2026-03-03", "business_count": "46", "login_count_total": "383", "login_count_diff": "383", "note": ""}, {"date": "2026-03-04", "business_count": "60", "login_count_total": "425", "login_count_diff": "42", "note": ""}, {"date": "2026-03-05", "business_count": "69", "login_count_total": "459", "login_count_diff": "34", "note": ""}, {"date": "2026-03-06", "business_count": "80", "login_count_total": "487", "login_count_diff": "28", "note": ""}, {"date": "2026-03-07", "business_count": "81", "login_count_total": "489", "login_count_diff": "2", "note": ""}, {"date": "2026-03-08", "business_count": "81", "login_count_total": "489", "login_count_diff": "0", "note": ""}, {"date": "2026-03-09", "business_count": "92", "login_count_total": "521", "login_count_diff": "32", "note": ""}];
+    const planData = [{"year_month": "2026-03", "elapsed_months": "1", "free_users": "165", "paid_users": "41", "bpsp_users": "14", "total": "221"}, {"year_month": "2026-04", "elapsed_months": "2", "free_users": "331", "paid_users": "83", "bpsp_users": "28", "total": "442"}, {"year_month": "2026-05", "elapsed_months": "3", "free_users": "496", "paid_users": "124", "bpsp_users": "43", "total": "663"}, {"year_month": "2026-06", "elapsed_months": "4", "free_users": "661", "paid_users": "165", "bpsp_users": "57", "total": "883"}, {"year_month": "2026-07", "elapsed_months": "5", "free_users": "827", "paid_users": "207", "bpsp_users": "71", "total": "1104"}, {"year_month": "2026-08", "elapsed_months": "6", "free_users": "992", "paid_users": "248", "bpsp_users": "85", "total": "1325"}, {"year_month": "2026-09", "elapsed_months": "7", "free_users": "1157", "paid_users": "289", "bpsp_users": "99", "total": "1546"}, {"year_month": "2026-10", "elapsed_months": "8", "free_users": "1323", "paid_users": "331", "bpsp_users": "113", "total": "1767"}, {"year_month": "2026-11", "elapsed_months": "9", "free_users": "1488", "paid_users": "372", "bpsp_users": "128", "total": "1988"}, {"year_month": "2026-12", "elapsed_months": "10", "free_users": "1653", "paid_users": "413", "bpsp_users": "142", "total": "2208"}, {"year_month": "2027-01", "elapsed_months": "11", "free_users": "1819", "paid_users": "456", "bpsp_users": "156", "total": "2429"}, {"year_month": "2027-02", "elapsed_months": "12", "free_users": "1984", "paid_users": "496", "bpsp_users": "170", "total": "2650"}, {"year_month": "2027-03", "elapsed_months": "13", "free_users": "2149", "paid_users": "537", "bpsp_users": "184", "total": "2871"}];
+
+    // 日次グラフ（事業者数のみ）
+    const labels = dailyData.map(r => r.date.replace('2026-', ''));
+    new Chart(document.getElementById('daily-chart'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '事業者数',
+          data: dailyData.map(r => parseInt(r.business_count || '0', 10)),
+          borderColor: 'rgb(59, 130, 246)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.2,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { type: 'linear', min: 0, title: { display: true, text: '事業者数' } } }
+      }
+    });
+
+    // 計画 vs 実績（月次）
+    const planLabels = planData.map(p => p.year_month.replace('-', '/'));
+    const planValues = planData.map(p => parseInt(p.free_users || '0', 10));
+    const actualByMonth = {};
+    dailyData.forEach(r => {
+      const ym = r.date.substring(0, 7);
+      const v = parseInt(r.business_count || '0', 10);
+      if (!(ym in actualByMonth) || v > actualByMonth[ym]) actualByMonth[ym] = v;
+    });
+    const actualValues = planData.map(p => actualByMonth[p.year_month] ?? null);
+    new Chart(document.getElementById('plan-vs-actual-chart'), {
+      type: 'bar',
+      data: {
+        labels: planLabels,
+        datasets: [
+          { label: '計画', data: planValues, backgroundColor: 'rgba(156, 163, 175, 0.6)', borderColor: 'rgb(107, 114, 128)', borderWidth: 1 },
+          { label: '実績', data: actualValues, backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: 'rgb(59, 130, 246)', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { type: 'linear', min: 0, title: { display: true, text: '事業者数' } } }
+      }
+    });
+
+    function makeSortable(tableId) {
+      const table = document.getElementById(tableId);
+      const ths = table.querySelectorAll('thead th');
+      ths.forEach((th, i) => {
+        th.addEventListener('click', () => {
+          const tbody = table.querySelector('tbody');
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          const dir = th.classList.contains('sorted-asc') ? -1 : 1;
+          ths.forEach(t => t.classList.remove('sorted-asc', 'sorted-desc'));
+          th.classList.add(dir === 1 ? 'sorted-asc' : 'sorted-desc');
+          rows.sort((a, b) => {
+            const va = a.cells[i]?.textContent?.trim() ?? '';
+            const vb = b.cells[i]?.textContent?.trim() ?? '';
+            const na = Number(va), nb = Number(vb);
+            if (!isNaN(na) && !isNaN(nb)) return dir * (na - nb);
+            return dir * String(va).localeCompare(vb);
+          });
+          rows.forEach(r => tbody.appendChild(r));
+        });
+      });
+    }
+
+    // Daily table
+    const dailyTbody = document.querySelector('#daily-table tbody');
+    dailyData.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.date}</td><td>${r.business_count}</td><td>${r.login_count_total}</td><td>${r.login_count_diff}</td><td>${r.note || ''}</td>`;
+      dailyTbody.appendChild(tr);
+    });
+    makeSortable('daily-table');
+  </script>
+</body>
+</html>
