@@ -102,7 +102,7 @@ def main():
   </section>
 
   <section class="section">
-    <h2>計画 vs 実績</h2>
+    <h2>FFG当初計画 vs 実績</h2>
     <div class="chart-wrap" style="height: 280px; margin-bottom: 1.5rem;">
       <canvas id="plan-vs-actual-chart"></canvas>
     </div>
@@ -210,7 +210,7 @@ def main():
       }}
     }});
 
-    // 計画 vs 実績（月次）
+    // FFG当初計画 vs 実績（月次）
     const planLabels = planData.map(p => p.year_month.replace('-', '/'));
     const planValues = planData.map(p => parseInt(p.free_users || '0', 10));
     const actualByMonth = {{}};
@@ -225,7 +225,7 @@ def main():
       data: {{
         labels: planLabels,
         datasets: [
-          {{ label: '計画', data: planValues, backgroundColor: 'rgba(156, 163, 175, 0.6)', borderColor: 'rgb(107, 114, 128)', borderWidth: 1 }},
+          {{ label: 'FFG当初計画', data: planValues, backgroundColor: 'rgba(156, 163, 175, 0.6)', borderColor: 'rgb(107, 114, 128)', borderWidth: 1 }},
           {{ label: '実績', data: actualValues, backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: 'rgb(59, 130, 246)', borderWidth: 1 }}
         ]
       }},
